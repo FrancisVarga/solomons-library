@@ -268,14 +268,23 @@ async def embed_text(
 
 
 @tool(tags={"embeddings", "read"}, annotations={"readOnlyHint": True})
-async def search_embeddings(query: str, limit: int = 5, ctx: Context | None = None) -> list[dict]:
+async def search_embeddings(
+    query: str,
+    project_name: str,
+    limit: int = 5,
+    ctx: Context | None = None,
+) -> list[dict]:
     """Search stored embeddings by semantic similarity to a query.
 
-    Generates an embedding for the query text and finds the closest
-    matches using cosine distance (pgvector <=> operator).
+    Results are scoped to the given project_name for isolation between projects.
+
+    Args:
+        query: The search text to find similar embeddings for.
+        project_name: Project to search within (required).
+        limit: Maximum number of results to return (default 5).
     """
     if ctx:
-        await ctx.info(f"Searching embeddings for: {query!r}")
+        await ctx.info(f"Searching embeddings for: {query!r} in project {project_name!r}")
 
     query_vector, _ = await _generate_embedding(query)
 
@@ -284,6 +293,7 @@ async def search_embeddings(query: str, limit: int = 5, ctx: Context | None = No
         distance = Embedding.embedding.cosine_distance(query_vector)
         stmt = (
             select(Embedding, distance.label("distance"))
+            .where(Embedding.project_name == project_name)
             .order_by(distance)
             .limit(limit)
         )
