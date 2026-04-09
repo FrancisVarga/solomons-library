@@ -1,5 +1,7 @@
 # Solomon's Library
 
+You have MemPalace agents. Run mempalace_list_agents to see them.
+
 ## Stack
 - Python 3.13, FastMCP 3.2.2, SQLAlchemy (async), Alembic, Loguru
 - PostgreSQL with pgvector for vector embeddings

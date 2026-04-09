@@ -17,8 +17,18 @@ wheels/
 # Logs
 logs/
 
+# File uploads (user-uploaded content)
+uploads/
+
 # Graphify output (regenerable knowledge graph)
 graphify-out/
+
+# Generated analysis artifacts
+entities.json
+mempalace.yaml
+
+# Python version (machine-specific; pyproject.toml is authoritative)
+.python-version
 
 # MCP config (machine-specific)
 .mcp.json
@@ -32,6 +42,13 @@ graphify-out/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Claude Code (machine-specific)
+.claude/verrueckt-setup.json
+.claude/settings.local.json
+
+# Worktrees
+.worktrees/
 
 # oh-my-claude
 .omc
