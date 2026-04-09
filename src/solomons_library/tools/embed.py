@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 
@@ -194,22 +195,31 @@ async def embed_text(
     except OSError:
         user = os.environ.get("USER") or os.environ.get("USERNAME", "unknown")
 
-    results: list[dict] = []
-    model_name = ""
-    async_session = get_async_session_factory()
+    # Generate all embeddings in parallel
+    if ctx:
+        await ctx.info("Generating embeddings in parallel...")
 
-    for i, chunk in enumerate(chunks):
-        vector, model_name = await _generate_embedding(chunk)
+    embedding_tasks = [_generate_embedding(chunk) for chunk in chunks]
+    vectors_and_models = await asyncio.gather(*embedding_tasks)
 
+    if ctx:
+        await ctx.report_progress(progress=50, total=100)
+        await ctx.info(f"All {total_chunks} embedding(s) generated, storing in database...")
+
+    model_name = vectors_and_models[0][1] if vectors_and_models else ""
+
+    # Store all chunks in parallel
+    async def _store_chunk(i: int, chunk: str, vector: list[float], model: str) -> dict:
         chunk_source = source
         if total_chunks > 1 and source:
             chunk_source = f"{source}#chunk-{i + 1}"
 
+        async_session = get_async_session_factory()
         async with async_session() as session:
             embedding = Embedding(
                 text=chunk,
                 source=chunk_source,
-                model=model_name,
+                model=model,
                 project_name=project_name,
                 user=user,
                 embedding=vector,
@@ -218,16 +228,17 @@ async def embed_text(
             await session.commit()
             await session.refresh(embedding)
 
-        results.append({
-            "id": embedding.id,
-            "chunk": i + 1,
-            "text_length": len(chunk),
-        })
+        return {"id": embedding.id, "chunk": i + 1, "text_length": len(chunk)}
 
-        if ctx:
-            pct = int(((i + 1) / total_chunks) * 100)
-            await ctx.report_progress(progress=pct, total=100)
-            await ctx.info(f"Chunk {i + 1}/{total_chunks} stored (ID {embedding.id})")
+    store_tasks = [
+        _store_chunk(i, chunk, vector, model)
+        for i, (chunk, (vector, model)) in enumerate(zip(chunks, vectors_and_models))
+    ]
+    results = await asyncio.gather(*store_tasks)
+
+    if ctx:
+        await ctx.report_progress(progress=100, total=100)
+        await ctx.info(f"All {total_chunks} chunk(s) stored")
 
     return {
         "model": model_name,
@@ -237,7 +248,7 @@ async def embed_text(
         "user": user,
         "total_text_length": len(text_content),
         "chunks": total_chunks,
-        "embeddings": results,
+        "embeddings": sorted(results, key=lambda r: r["chunk"]),
     }
 
 
