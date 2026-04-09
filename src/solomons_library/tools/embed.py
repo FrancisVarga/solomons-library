@@ -162,10 +162,23 @@ async def _generate_embedding(text_content: str) -> tuple[list[float], str]:
     raise RuntimeError("No embedding API key configured (set OPENAI_API_KEY or GEMINI_API_KEY)")
 
 
+def _resolve_user(user: str | None, ctx: Context | None) -> str:
+    """Resolve user identity from explicit param, MCP client, or OS."""
+    if user:
+        return user
+    if ctx and ctx.client_id:
+        return ctx.client_id
+    try:
+        return os.getlogin()
+    except OSError:
+        return os.environ.get("USER") or os.environ.get("USERNAME", "unknown")
+
+
 @tool(task=True, tags={"embeddings", "write"})
 async def embed_text(
     text_content: str,
     source: str | None = None,
+    user: str | None = None,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
     ctx: Context | None = None,
@@ -179,6 +192,7 @@ async def embed_text(
     Args:
         text_content: The text to embed.
         source: Optional source identifier (e.g., filename or URL).
+        user: Optional user/caller identifier. Auto-detected from MCP client if omitted.
         chunk_size: Maximum characters per chunk (default 2000).
         chunk_overlap: Overlap between chunks to preserve context (default 200).
     """
@@ -190,10 +204,7 @@ async def embed_text(
         await ctx.report_progress(progress=0, total=100)
 
     project_name = settings.PROJECT_NAME
-    try:
-        user = os.getlogin()
-    except OSError:
-        user = os.environ.get("USER") or os.environ.get("USERNAME", "unknown")
+    resolved_user = _resolve_user(user, ctx)
 
     # Generate all embeddings in parallel
     if ctx:
@@ -221,7 +232,7 @@ async def embed_text(
                 source=chunk_source,
                 model=model,
                 project_name=project_name,
-                user=user,
+                user=resolved_user,
                 embedding=vector,
             )
             session.add(embedding)
@@ -245,7 +256,7 @@ async def embed_text(
         "dimensions": 1536,
         "source": source,
         "project_name": project_name,
-        "user": user,
+        "user": resolved_user,
         "total_text_length": len(text_content),
         "chunks": total_chunks,
         "embeddings": sorted(results, key=lambda r: r["chunk"]),
