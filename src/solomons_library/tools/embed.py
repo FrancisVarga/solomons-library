@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import re
 
 from fastmcp import Context
@@ -162,14 +161,10 @@ async def _generate_embedding(text_content: str) -> tuple[list[float], str]:
     raise RuntimeError("No embedding API key configured (set OPENAI_API_KEY or GEMINI_API_KEY)")
 
 
-def _resolve_user(user: str | None, ctx: Context | None) -> str:
-    """Resolve user identity from explicit param, MCP client, or OS."""
-    if user:
-        return user
-    # Try MCP client_id from request metadata
-    if ctx and ctx.client_id:
-        return ctx.client_id
-    # Try clientInfo.name from MCP session initialization
+def _resolve_agent(agent: str | None, ctx: Context | None) -> str | None:
+    """Resolve agent identity from explicit param or MCP clientInfo."""
+    if agent:
+        return agent
     if ctx and ctx.request_context:
         try:
             params = ctx.request_context.session._client_params
@@ -177,18 +172,15 @@ def _resolve_user(user: str | None, ctx: Context | None) -> str:
                 return params.clientInfo.name
         except (AttributeError, TypeError):
             pass
-    try:
-        return os.getlogin()
-    except OSError:
-        return os.environ.get("USER") or os.environ.get("USERNAME", "unknown")
+    return None
 
 
 @tool(task=True, tags={"embeddings", "write"})
 async def embed_text(
     text_content: str,
+    user: str,
     project_name: str | None = None,
     source: str | None = None,
-    user: str | None = None,
     agent: str | None = None,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
@@ -202,10 +194,10 @@ async def embed_text(
 
     Args:
         text_content: The text to embed.
+        user: Username of the person embedding (e.g., "francis").
         project_name: Project to store the embedding under. Defaults to server config.
         source: Optional source identifier (e.g., filename or URL).
-        user: Optional user/caller identifier. Auto-detected from MCP client if omitted.
-        agent: Optional agent identifier (e.g., "claude-code", "cursor", "custom-agent").
+        agent: Optional agent identifier. Auto-detected from MCP clientInfo if omitted.
         chunk_size: Maximum characters per chunk (default 2000).
         chunk_overlap: Overlap between chunks to preserve context (default 200).
     """
@@ -217,7 +209,7 @@ async def embed_text(
         await ctx.report_progress(progress=0, total=100)
 
     project_name = project_name or settings.PROJECT_NAME
-    resolved_user = _resolve_user(user, ctx)
+    resolved_agent = _resolve_agent(agent, ctx)
 
     # Generate all embeddings in parallel
     if ctx:
@@ -245,8 +237,8 @@ async def embed_text(
                 source=chunk_source,
                 model=model,
                 project_name=project_name,
-                user=resolved_user,
-                agent=agent,
+                user=user,
+                agent=resolved_agent,
                 embedding=vector,
             )
             session.add(embedding)
@@ -270,8 +262,8 @@ async def embed_text(
         "dimensions": 1536,
         "source": source,
         "project_name": project_name,
-        "user": resolved_user,
-        "agent": agent,
+        "user": user,
+        "agent": resolved_agent,
         "total_text_length": len(text_content),
         "chunks": total_chunks,
         "embeddings": sorted(results, key=lambda r: r["chunk"]),
