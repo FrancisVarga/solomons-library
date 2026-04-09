@@ -11,12 +11,13 @@ from contextlib import asynccontextmanager
 
 from fastmcp import FastMCP
 from fastmcp.client.sampling.handlers.openai import OpenAISamplingHandler
-from fastmcp.server.providers.skills import ClaudeSkillsProvider
+from fastmcp.server.providers.skills import SkillsDirectoryProvider
 from fastmcp.server.transforms.search import BM25SearchTransform
 from loguru import logger
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 
+from solomons_library.cache import close_redis, get_redis
 from solomons_library.config import settings
 from solomons_library.db import get_async_engine
 from solomons_library.log_setup import setup_logging
@@ -34,9 +35,11 @@ async def lifespan(server: FastMCP):  # noqa: ARG001
     setup_logging()
     logger.info("Solomon's Library starting up")
     engine = get_async_engine()
+    await get_redis()  # warm up Redis cache connection
     try:
         yield {"db_engine": engine}
     finally:
+        await close_redis()
         await engine.dispose()
         logger.info("Solomon's Library shut down")
 
@@ -69,9 +72,10 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 
 try:
-    mcp.add_provider(ClaudeSkillsProvider())
+    from pathlib import Path
+    mcp.add_provider(SkillsDirectoryProvider(roots=Path.cwd() / ".claude" / "skills"))
 except Exception as e:
-    logger.warning(f"Could not load Claude skills provider: {e}")
+    logger.warning(f"Could not load skills provider: {e}")
 
 # ---------------------------------------------------------------------------
 # Register tools
@@ -80,8 +84,21 @@ except Exception as e:
 from solomons_library.tools.books import add_book, get_book, list_books  # noqa: E402
 from solomons_library.tools.embed import embed_text, search_embeddings  # noqa: E402
 from solomons_library.tools.openapi import import_openapi_spec  # noqa: E402
+from solomons_library.tools.upload import (  # noqa: E402
+    get_upload_status,
+    list_uploads,
+    process_upload,
+    upload_file,
+)
+from solomons_library.tools.skills import get_skill, index_skills, reindex_skills, search_skills  # noqa: E402
 
-for t in [add_book, get_book, list_books, embed_text, search_embeddings, import_openapi_spec]:
+for t in [
+    add_book, get_book, list_books,
+    embed_text, search_embeddings,
+    import_openapi_spec,
+    upload_file, process_upload, get_upload_status, list_uploads,
+    search_skills, get_skill, index_skills, reindex_skills,
+]:
     mcp.add_tool(t)
 
 # ---------------------------------------------------------------------------

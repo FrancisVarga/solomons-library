@@ -19,6 +19,7 @@ venv
 # CI / tooling
 .github
 .claude
+!.claude/skills/
 .omc
 graphify-out
 

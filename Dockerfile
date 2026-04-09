@@ -19,6 +19,7 @@ COPY README.md ./
 COPY src/ src/
 COPY alembic/ alembic/
 COPY alembic.ini ./
+COPY .claude/skills/ .claude/skills/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
@@ -45,9 +46,10 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
 COPY --from=builder /app/alembic /app/alembic
 COPY --from=builder /app/alembic.ini /app/alembic.ini
+COPY --from=builder /app/.claude/skills /app/.claude/skills
 
-# Ensure logs directory exists
-RUN mkdir -p /app/logs && chown -R app:app /app
+# Ensure logs and uploads directories exist
+RUN mkdir -p /app/logs /app/uploads && chown -R app:app /app
 
 # Put the venv on PATH
 ENV PATH="/app/.venv/bin:$PATH" \

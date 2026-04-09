@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
+    "beautifulsoup4>=4.13.0",
     "fastmcp[code-mode,tasks]>=3.2.2",
     "google-genai>=1.16.1",
     "granian>=2.7.3",
@@ -16,7 +17,10 @@ dependencies = [
     "pgvector>=0.4.1",
     "psycopg[binary]>=3.3.3",
     "py-key-value-aio[redis]>=0.4.4,<0.5.0",
+    "pymupdf>=1.25.0",
+    "python-docx>=1.1.0",
     "python-dotenv>=1.2.2",
+    "pyyaml>=6.0.0",
     "redis>=6.2.0",
     "sqlalchemy[asyncio]>=2.0.49",
 ]
