@@ -166,8 +166,17 @@ def _resolve_user(user: str | None, ctx: Context | None) -> str:
     """Resolve user identity from explicit param, MCP client, or OS."""
     if user:
         return user
+    # Try MCP client_id from request metadata
     if ctx and ctx.client_id:
         return ctx.client_id
+    # Try clientInfo.name from MCP session initialization
+    if ctx and ctx.request_context:
+        try:
+            params = ctx.request_context.session._client_params
+            if params and params.clientInfo and params.clientInfo.name:
+                return params.clientInfo.name
+        except (AttributeError, TypeError):
+            pass
     try:
         return os.getlogin()
     except OSError:
