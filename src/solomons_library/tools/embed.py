@@ -8,6 +8,7 @@ from fastmcp.tools import tool
 from loguru import logger
 from sqlalchemy import select
 
+from solomons_library.cache import cache_invalidate, cached
 from solomons_library.config import settings
 from solomons_library.db import get_async_session_factory
 from solomons_library.models import Embedding
@@ -147,6 +148,7 @@ async def _embed_gemini(text_content: str) -> tuple[list[float], str]:
     return vector[:1536], "gemini:gemini-embedding-exp-03-07"
 
 
+@cached(namespace="embed", ttl=3600, key_args=(0,))
 async def _generate_embedding(text_content: str) -> tuple[list[float], str]:
     """Generate embedding using OpenAI (primary) with Gemini fallback."""
     if settings.OPENAI_API_KEY:
@@ -257,6 +259,9 @@ async def embed_text(
         await ctx.report_progress(progress=100, total=100)
         await ctx.info(f"All {total_chunks} chunk(s) stored")
 
+    # Invalidate search and resource caches after storing new embeddings
+    await cache_invalidate("sl:search:*", "sl:res:*", "sl:mw:*")
+
     return {
         "model": model_name,
         "dimensions": 1536,
@@ -289,6 +294,16 @@ async def search_embeddings(
     if ctx:
         await ctx.info(f"Searching embeddings for: {query!r} in project {project_name!r}")
 
+    # Check search result cache
+    from solomons_library.cache import cache_get, cache_set, _make_key, _hash_args
+
+    search_key = _make_key("search", _hash_args(query, project_name, limit))
+    hit = await cache_get(search_key)
+    if hit is not None:
+        if ctx:
+            await ctx.info(f"Found {len(hit)} results (cached)")
+        return hit
+
     query_vector, _ = await _generate_embedding(query)
 
     async_session = get_async_session_factory()
@@ -306,7 +321,7 @@ async def search_embeddings(
     if ctx:
         await ctx.info(f"Found {len(rows)} results")
 
-    return [
+    results = [
         {
             "id": emb.id,
             "text": emb.text[:200],
@@ -319,3 +334,6 @@ async def search_embeddings(
         }
         for emb, dist in rows
     ]
+
+    await cache_set(search_key, results, ttl=300)
+    return results
