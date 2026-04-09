@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-04-09",
+  "git_hash": "94caac0",
+  "orchestrator": {
+    "name": "cortex-solomon",
+    "purpose": "MCP server development assistant for Solomon's Library",
+    "agent": "cortex/agents/cortex-solomon/agent.md"
+  },
+  "domains": {
+    "backend": {
+      "agent": "cortex/agents/cortex-backend/agent.md",
+      "keywords": ["FastMCP", "tools", "resources", "prompts", "middleware", "server", "MCP", "embed", "search", "OpenAPI", "Docket", "Redis", "OpenAI", "Gemini"],
+      "paths": ["src/solomons_library/tools/", "src/solomons_library/resources/", "src/solomons_library/prompts/", "src/solomons_library/middleware.py", "src/solomons_library/server.py"],
+      "stack": ["FastMCP 3.2.2", "Python 3.13", "Docket", "Redis", "OpenAI", "Gemini", "httpx", "Loguru"]
+    },
+    "data": {
+      "agent": "cortex/agents/cortex-data/agent.md",
+      "keywords": ["SQLAlchemy", "Alembic", "migration", "pgvector", "model", "schema", "database", "ORM", "asyncpg", "psycopg", "Vector", "HNSW"],
+      "paths": ["alembic/", "src/solomons_library/models/", "src/solomons_library/db/"],
+      "stack": ["SQLAlchemy 2.0+", "Alembic", "PostgreSQL", "pgvector", "asyncpg", "psycopg"]
+    },
+    "docs": {
+      "agent": "cortex/agents/cortex-docs/agent.md",
+      "keywords": ["CLAUDE.md", "README", "graphify", "knowledge graph", "documentation", "project-context"],
+      "paths": ["graphify-out/", "CLAUDE.md", "README.md", ".claude/rules/cortex/project-context.md"],
+      "stack": ["Markdown", "graphify"]
+    }
+  },
+  "reused_domains": {},
+  "skipped_domains": {
+    "infra": "low confidence — no Docker/CI detected; external PostgreSQL+Redis required",
+    "testing": "absent — no test directory or pytest dependency detected; create tests before generating a testing agent"
+  }
+}
