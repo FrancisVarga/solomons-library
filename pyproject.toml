@@ -9,6 +9,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "fastmcp[code-mode,tasks]>=3.2.2",
     "google-genai>=1.16.1",
+    "granian>=2.7.3",
     "httpx>=0.28.0",
     "loguru>=0.7.3",
     "openai>=1.82.0",

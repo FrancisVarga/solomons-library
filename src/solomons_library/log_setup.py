@@ -33,7 +33,7 @@ def setup_logging() -> None:
 
     # Intercept stdlib logging through Loguru
     logging.basicConfig(handlers=[InterceptHandler()], level=logging.INFO, force=True)
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "sqlalchemy.engine", "alembic"):
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "granian", "granian.access", "sqlalchemy.engine", "alembic"):
         logging.getLogger(name).handlers = [InterceptHandler()]
 
     # Silence noisy Docket scheduler and MCP internals

@@ -1,0 +1,36 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.venv
+venv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# CI / tooling
+.github
+.claude
+.omc
+graphify-out
+
+# Logs & runtime
+logs/
+*.log
+
+# Environment (secrets)
+.env
+.env.*
+
+# Docker
+Dockerfile
+compose.yml
+docker-compose*.yml
