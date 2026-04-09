@@ -63,8 +63,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # Run with Granian for high concurrency
 # - workers: 4 OS processes (bypasses GIL)
-# - threads: 2 threads per worker for I/O-heavy embedding workloads
-# - backpressure: 64 pending requests before rejecting
+# - runtime-threads: 2 async runtime threads per worker
+# - backpressure: 64 pending requests per worker before rejecting
 # - http: HTTP/1 (MCP clients don't use HTTP/2 yet)
 CMD [ \
     "granian", \
@@ -73,7 +73,7 @@ CMD [ \
     "--host", "0.0.0.0", \
     "--port", "8000", \
     "--workers", "4", \
-    "--threads", "2", \
+    "--runtime-threads", "2", \
     "--backpressure", "64", \
     "--http", "1" \
 ]
