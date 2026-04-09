@@ -10,6 +10,11 @@ services:
     environment:
       SERVER_HOST: "0.0.0.0"
       SERVER_PORT: "8000"
+      REDIS_URL: redis://redis:6379/0
+      FASTMCP_DOCKET_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -17,6 +22,21 @@ services:
       timeout: 5s
       start_period: 15s
       retries: 3
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["fastmcp", "tasks", "worker", "src/solomons_library/server.py:mcp"]
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      FASTMCP_DOCKET_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   migrate:
     build:
@@ -26,3 +46,18 @@ services:
     env_file:
       - .env
     restart: "no"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redisdata:
