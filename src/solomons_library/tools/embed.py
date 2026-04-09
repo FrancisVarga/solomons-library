@@ -179,6 +179,7 @@ async def embed_text(
     text_content: str,
     source: str | None = None,
     user: str | None = None,
+    agent: str | None = None,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
     ctx: Context | None = None,
@@ -193,6 +194,7 @@ async def embed_text(
         text_content: The text to embed.
         source: Optional source identifier (e.g., filename or URL).
         user: Optional user/caller identifier. Auto-detected from MCP client if omitted.
+        agent: Optional agent identifier (e.g., "claude-code", "cursor", "custom-agent").
         chunk_size: Maximum characters per chunk (default 2000).
         chunk_overlap: Overlap between chunks to preserve context (default 200).
     """
@@ -233,6 +235,7 @@ async def embed_text(
                 model=model,
                 project_name=project_name,
                 user=resolved_user,
+                agent=agent,
                 embedding=vector,
             )
             session.add(embedding)
@@ -257,6 +260,7 @@ async def embed_text(
         "source": source,
         "project_name": project_name,
         "user": resolved_user,
+        "agent": agent,
         "total_text_length": len(text_content),
         "chunks": total_chunks,
         "embeddings": sorted(results, key=lambda r: r["chunk"]),
@@ -297,6 +301,7 @@ async def search_embeddings(query: str, limit: int = 5, ctx: Context | None = No
             "model": emb.model,
             "project_name": emb.project_name,
             "user": emb.user,
+            "agent": emb.agent,
             "similarity": round(1 - dist, 4),
         }
         for emb, dist in rows

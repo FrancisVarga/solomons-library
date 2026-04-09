@@ -19,5 +19,6 @@ class Embedding(Base):
     model: Mapped[str] = mapped_column(String(100))
     project_name: Mapped[str | None] = mapped_column(String(200), index=True)
     user: Mapped[str | None] = mapped_column(String(200), index=True)
+    agent: Mapped[str | None] = mapped_column(String(200), index=True)
     embedding: Mapped[list[float]] = mapped_column(Vector(1536))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
