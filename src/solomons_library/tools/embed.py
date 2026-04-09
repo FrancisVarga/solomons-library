@@ -177,6 +177,7 @@ def _resolve_user(user: str | None, ctx: Context | None) -> str:
 @tool(task=True, tags={"embeddings", "write"})
 async def embed_text(
     text_content: str,
+    project_name: str | None = None,
     source: str | None = None,
     user: str | None = None,
     agent: str | None = None,
@@ -192,6 +193,7 @@ async def embed_text(
 
     Args:
         text_content: The text to embed.
+        project_name: Project to store the embedding under. Defaults to server config.
         source: Optional source identifier (e.g., filename or URL).
         user: Optional user/caller identifier. Auto-detected from MCP client if omitted.
         agent: Optional agent identifier (e.g., "claude-code", "cursor", "custom-agent").
@@ -205,7 +207,7 @@ async def embed_text(
         await ctx.info(f"Embedding {len(text_content)} chars in {total_chunks} chunk(s)")
         await ctx.report_progress(progress=0, total=100)
 
-    project_name = settings.PROJECT_NAME
+    project_name = project_name or settings.PROJECT_NAME
     resolved_user = _resolve_user(user, ctx)
 
     # Generate all embeddings in parallel
